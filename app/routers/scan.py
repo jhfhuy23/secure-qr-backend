@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.security.dependencies import require_user
 from app.schemas.scan import ScanResultRequest, ScanResultResponse, ScanHistoryResponse
 from app.services.scan_service import ScanService
 from app.security.rate_limiter import limiter
