@@ -9,7 +9,7 @@ class ScanResultRequest(BaseModel):
     safety_score: int
     safety_label: str
     threat_type:  Optional[str] = None
-    user_id:      Optional[int] = None
+    
 
     @field_validator("raw_url")
     @classmethod

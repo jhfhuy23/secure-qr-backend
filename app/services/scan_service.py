@@ -14,7 +14,7 @@ class ScanService:
         self.scan_repo      = ScannedUrlRepository(db)
         self.blacklist_repo = BlacklistRepository(db)
 
-    async def store(self, body: ScanResultRequest) -> dict:
+    async def store(self, body: ScanResultRequest, user_id: int) -> dict:
         # Step 1 — normalize and hash
         normalized = normalize_url(body.raw_url)
         url_hash   = hash_url(normalized)
@@ -47,7 +47,7 @@ class ScanService:
             safety_label=body.safety_label,
             was_blacklisted=was_blacklisted,
             threat_type=body.threat_type,
-            user_id=body.user_id,
+            user_id=user_id,
         )
 
         return scan

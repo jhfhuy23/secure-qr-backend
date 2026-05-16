@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.security.dependencies import require_user
+
 from app.schemas.scan import ScanResultRequest, ScanResultResponse, ScanHistoryResponse
 from app.services.scan_service import ScanService
 from app.security.rate_limiter import limiter
+from app.security.dependencies import require_user
 from app.utils.url_normalizer import is_private_target
 from app.utils.logger import logger
-from app.database import get_db
-from app.config import settings
 from app.utils.api_error import AppException
 from app.utils.error_codes import ErrorCode
+from app.database import get_db
+
 router = APIRouter()
 
 
@@ -19,11 +20,10 @@ async def store_scan_result(
     request: Request,
     body: ScanResultRequest,
     db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_user),
 ):
-    if  not settings.TEST_MODE and  is_private_target(body.raw_url):
-        logger.warning(
-            f"SSRF probe detected device_id={body.device_id} url={body.raw_url}"
-        )
+    if is_private_target(body.raw_url):
+        logger.warning(f"SSRF probe detected device_id={body.device_id} url={body.raw_url}")
         raise AppException(
             status_code=400,
             error_code=ErrorCode.INVALID_URL_TARGET,
@@ -31,7 +31,7 @@ async def store_scan_result(
             field="raw_url",
         )
     service = ScanService(db)
-    return await service.store(body)
+    return await service.store(body, user_id=user["user_id"])
 
 
 @router.get("/scan/history", response_model=ScanHistoryResponse)
