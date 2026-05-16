@@ -1,15 +1,15 @@
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
-
+ 
 from app.models.scanned_url import ScannedUrl
-
-
+ 
+ 
 class ScannedUrlRepository:
-
-    def __init__(self, db: AsyncSession):   #constructor
+ 
+    def __init__(self, db: AsyncSession):
         self.db = db
-
+ 
     async def create(
         self,
         device_id:       str,
@@ -20,6 +20,7 @@ class ScannedUrlRepository:
         safety_label:    str,
         was_blacklisted: bool,
         threat_type:     str | None,
+        user_id:         int | None = None,
     ) -> dict:
         record = ScannedUrl(
             device_id=device_id,
@@ -30,12 +31,13 @@ class ScannedUrlRepository:
             safety_label=safety_label,
             was_blacklisted=was_blacklisted,
             threat_type=threat_type,
+            user_id=user_id,
         )
         self.db.add(record)
-        await self.db.flush()  #Take all recent changes in the session and send the corresponding SQL to the database.
-        await self.db.refresh(record)   #refreshing the record object here with values added in case of auto addin fileds the db (id..)
-
-        # id → scan_id mapping (decided in Step 3)
+        await self.db.flush()
+        await self.db.refresh(record)
+ 
+        # id → scan_id mapping
         return {
             "scan_id":         record.id,
             "url_hash":        record.url_hash,
@@ -45,31 +47,31 @@ class ScannedUrlRepository:
             "was_blacklisted": record.was_blacklisted,
             "scanned_at":      record.scanned_at,
         }
-
-    async def get_by_device(
+ 
+    async def get_by_user(
         self,
-        device_id: str,
-        page:      int,
-        limit:     int,
-        label:     str | None,
+        user_id: int,
+        page:    int,
+        limit:   int,
+        label:   str | None,
     ) -> tuple[list, int]:
         stmt = (
-            select(ScannedUrl) #give me * from the table but rows as scannedurl objects , so each row is a single object with attrinutes , not multiple coulomns for row  like if we specified it (select(scannedurl.id,scannedurl.domain))
-            .where(ScannedUrl.device_id == device_id)
+            select(ScannedUrl)
+            .where(ScannedUrl.user_id == user_id)
             .order_by(ScannedUrl.scanned_at.desc())
         )
         if label:
             stmt = stmt.where(ScannedUrl.safety_label == label.upper())
-
+ 
         # total count
         count_stmt = select(func.count()).select_from(stmt.subquery())
-        total      = (await self.db.execute(count_stmt)).scalar() #scalar to make the couloumns form result:arry of [(row1,),(row2,)..] from db.execute , to single array of objects[row1,row2..]
-
+        total      = (await self.db.execute(count_stmt)).scalar()
+ 
         # paginated rows
         stmt   = stmt.offset((page - 1) * limit).limit(limit)
         result = await self.db.execute(stmt)
         rows   = result.scalars().all()
-     
+ 
         # id → scan_id mapping on every row
         items = [
             {
@@ -83,6 +85,7 @@ class ScannedUrlRepository:
             for row in rows
         ]
         return items, total
+ 
 
     async def get_statistics(self, from_date: date, to_date: date) -> dict:
         # Count per safety_label

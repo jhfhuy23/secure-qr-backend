@@ -32,6 +32,7 @@ class ScanService:
                     url=normalized,
                     url_hash=url_hash,
                     domain=domain,
+                    threat_type=body.threat_type,
                 )
                 logger.info(f"Auto-blacklisted url_hash={url_hash} domain={domain}")
             was_blacklisted = True
@@ -46,21 +47,22 @@ class ScanService:
             safety_label=body.safety_label,
             was_blacklisted=was_blacklisted,
             threat_type=body.threat_type,
+            user_id=body.user_id,
         )
 
         return scan
 
     async def get_history(
         self,
-        device_id: str,
-        page: int,
-        limit: int,
-        label: str | None,
+        user_id: int,
+        page:    int,
+        limit:   int,
+        label:   str | None,
     ) -> dict:
-        items, total = await self.scan_repo.get_by_device(device_id, page, limit, label)
+        items, total = await self.scan_repo.get_by_user(user_id, page, limit, label)
         return {
             "total": total,
-            "page": page,
+            "page":  page,
             "limit": limit,
             "items": items,
         }

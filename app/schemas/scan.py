@@ -4,11 +4,12 @@ from datetime import datetime
 
 
 class ScanResultRequest(BaseModel):
-    device_id: str
-    raw_url: str
+    device_id:    str
+    raw_url:      str
     safety_score: int
     safety_label: str
-    threat_type: str
+    threat_type:  Optional[str] = None
+    user_id:      Optional[int] = None
 
     @field_validator("raw_url")
     @classmethod
@@ -42,27 +43,37 @@ class ScanResultRequest(BaseModel):
             raise ValueError(f"safety_label must be one of: {allowed}")
         return v.upper()
 
+    @field_validator("threat_type")
+    @classmethod
+    def validate_threat_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        allowed = {"PHISHING", "MALWARE", "SCAM", "REDIRECT"}
+        if v.upper() not in allowed:
+            raise ValueError(f"threat_type must be one of: {allowed}")
+        return v.upper()
+
 
 class ScanResultResponse(BaseModel):
-    scan_id: int
-    url_hash: str
-    domain: str
-    safety_score: int
-    safety_label: str
+    scan_id:        int
+    url_hash:       str
+    domain:         str
+    safety_score:   int
+    safety_label:   str
     was_blacklisted: bool
-    scanned_at: datetime
+    scanned_at:     datetime
 
     class Config:
         from_attributes = True
 
 
 class ScanHistoryItem(BaseModel):
-    scan_id: int
-    domain: str
-    safety_label: str
-    safety_score: int
+    scan_id:        int
+    domain:         str
+    safety_label:   str
+    safety_score:   int
     was_blacklisted: bool
-    scanned_at: datetime
+    scanned_at:     datetime
 
     class Config:
         from_attributes = True
@@ -70,6 +81,6 @@ class ScanHistoryItem(BaseModel):
 
 class ScanHistoryResponse(BaseModel):
     total: int
-    page: int
+    page:  int
     limit: int
     items: List[ScanHistoryItem]

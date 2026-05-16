@@ -18,3 +18,16 @@ async def require_admin(
             message="Admin privileges required.",
         )
     return payload
+
+ 
+async def require_user(
+    credentials: HTTPAuthorizationCredentials = Security(bearer_scheme),
+) -> dict:
+    payload = decode_token(credentials.credentials)
+    if payload.get("role") != "user":
+        raise AppException(
+            status_code=403,
+            error_code=ErrorCode.FORBIDDEN,
+            message="User authentication required.",
+        )
+    return payload

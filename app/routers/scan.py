@@ -37,11 +37,16 @@ async def store_scan_result(
 @router.get("/scan/history", response_model=ScanHistoryResponse)
 async def get_scan_history(
     request: Request,
-    device_id: str,
-    page: int = 1,
+    page:  int = 1,
     limit: int = 20,
     label: str | None = None,
     db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_user),
 ):
     service = ScanService(db)
-    return await service.get_history(device_id, page, limit, label)
+    return await service.get_history(
+        user_id=user["user_id"],
+        page=page,
+        limit=limit,
+        label=label,
+    )
